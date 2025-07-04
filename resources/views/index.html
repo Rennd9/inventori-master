@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fall Out Boy Cosmic Style</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+        
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            overflow-x: hidden;
+            min-height: 100vh;
+            cursor: none;
+        }
+        
+        .fallout-text {
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .fallout-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073;
+            z-index: 10;
+        }
+        
+        .fallout-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: all 0.7s ease;
+        }
+        
+        .fallout-btn:hover::before {
+            left: 100%;
+        }
+        
+        /* Custom cursor */
+        .cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            pointer-events: none;
+            mix-blend-mode: difference;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+        }
+        
+        .cursor-splash {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(230,0,115,0.8) 0%, rgba(230,0,115,0) 70%);
+            pointer-events: none;
+            z-index: 9998;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+        }
+        
+       /* Stars */
+.stars {
+    position: fixed; /* Changed to fixed for full-screen */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 0;
+}
+
+.stars::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent url('https://cdn.dribbble.com/userupload/12823193/file/original-798b69ae39c017e826a7a3cdc9f78784.png?resize=1024x768&vertical=center') no-repeat center center; /* Centered the image */
+    background-size: cover; /* Ensures the image covers the entire area */
+    z-index: 1;
+    opacity: 0.4;
+}
+        
+        .twinkling {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 2;
+            background: transparent url('https://files.softicons.com/download/internet-icons/blogger-icons-by-iconshock/png/512/star.png') repeat top center;
+            animation: move-twink-back 200s linear infinite;
+        }
+        
+        @keyframes move-twink-back {
+            from {background-position: 0 0;}
+            to {background-position: -10000px 5000px;}
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center">
+    <!-- Stars Background -->
+    <div class="stars"></div>
+    
+    <!-- Content -->
+    <div class="text-center relative z-10">
+        <!-- Fall Out Text -->
+        <div class="mb-2">
+            <h1 class="text-5xl md:text-6xl font-bold text-white fallout-text">Fall Out</h1>
+        </div>
+        
+        <!-- Boy. Text -->
+        <div class="mb-8">
+            <h2 class="text-6xl md:text-7xl font-bold text-white fallout-text">Boy.</h2>
+        </div>
+        
+        <!-- Button -->
+        <button class="fallout-btn bg-transparent border-2 border-pink-500 text-white px-12 py-4 rounded-full text-lg md:text-xl font-bold tracking-wider hover:bg-pink-500/20 transform hover:scale-105 transition-all duration-300">
+            EXPLORE NOW
+        </button>
+    </div>
+    
+    <!-- Custom Cursor -->
+    <div class="cursor"></div>
+    <div class="cursor-splash"></div>
+    
+    <script>
+        // Custom cursor with splash effect
+        const cursor = document.querySelector('.cursor');
+        const cursorSplash = document.querySelector('.cursor-splash');
+        
+        document.addEventListener('mousemove', e => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+        
+        document.addEventListener('click', e => {
+            // Splash effect on click
+            cursorSplash.style.left = e.clientX + 'px';
+            cursorSplash.style.top = e.clientY + 'px';
+            cursorSplash.style.transform = 'translate(-50%, -50%) scale(1)';
+            cursorSplash.style.opacity = '1';
+            
+            setTimeout(() => {
+                cursorSplash.style.transform = 'translate(-50%, -50%) scale(0)';
+                cursorSplash.style.opacity = '0';
+            }, 500);
+        });
+        
+        // Button hover effect
+        const button = document.querySelector('button');
+        
+        button.addEventListener('mouseenter', () => {
+            cursor.style.transform = 'translate(-50%, -50%) scale(2)';
+            cursor.style.background = 'rgba(230, 0, 115, 0.5)';
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+            cursor.style.background = 'rgba(255, 255, 255, 0.8)';
+        });
+    </script>
+</body>
+</html>
