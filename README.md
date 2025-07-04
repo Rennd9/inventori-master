@@ -1,1 +1,1 @@
-# inventori-master
+# inventori Laravel
