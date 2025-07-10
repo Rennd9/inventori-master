@@ -26,6 +26,33 @@
             <a class="btn neo-btn btn-sm" href="{{ route('items.create') }}">+ Tambah Barang</a>
         </div>
 
+         {{-- Alert Request Restok Pending --}}
+    @if(isset($pendingRequests) && $pendingRequests->isNotEmpty())
+        <div class="neo-border alert alert-info">
+            <strong>🔔 Permintaan Restok!</strong> Ada {{ $pendingRequests->count() }} permintaan baru:
+            <div class="mt-2">
+                @foreach($pendingRequests as $request)
+                    <div class="d-flex justify-content-between align-items-center p-2 mb-1 rounded">
+                        <div>
+                            <strong>{{ $request->item_name }}</strong> (oleh: {{ $request->user_name }})
+                            <em class="d-block text-muted">"{{ $request->message }}" — {{ \Carbon\Carbon::parse($request->created_at)->diffForHumans() }}</em>
+                        </div>
+                        <div class="btn-group">
+                            <form action="{{ route('restock.update', [$request->id, 'approved']) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-success btn-sm">✅ Setuju</button>
+                            </form>
+                            <form action="{{ route('restock.update', [$request->id, 'rejected']) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-danger btn-sm">❌ Tolak</button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
         <div class="table-responsive">
             <table class="table table-bordered w-100">
                 <thead>
@@ -40,7 +67,6 @@
                 </thead>
                 <tbody>
                     @forelse($items as $item)
-                        
                         <tr>
                             <td>{{ $item->name }}</td>
                             <td>{{ $item->category_name ?? 'Tidak Ada' }}</td>
@@ -86,12 +112,8 @@
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="{{ route('items.show', $item->id) }}" class="btn btn-sm btn-outline-info">
-                                        👁️ Lihat
-                                    </a>
-                                    <button type="button" data-bs-toggle="modal" data-bs-target="#basicModal{{ $item->id }}" class="btn btn-sm btn-outline-primary">
-                                        ✏️ Edit
-                                    </button>
+                                   
+                                   
                                     <form action="{{ route('items.destroy', $item->id) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
@@ -104,7 +126,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center">Tidak ada data barang.</td>
+                            <td colspan="6" class="text-center">Tidak ada data barang.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -112,74 +134,6 @@
         </div>
     </div>
 </div>
-@foreach($items as $item)
-    {{-- Modal EDIT --}}
-    <div class="modal fade modal-neo" id="basicModal{{ $item->id }}" tabindex="-1" aria-labelledby="basicModalLabel{{ $item->id }}" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <form action="{{ route('items.update', $item->id) }}" method="POST">
-                    @csrf
-                    @method('PUT')
-                    
-                    <div class="modal-header">
-                        <h1 class="modal-title" id="basicModalLabel{{ $item->id }}">Edit Barang: {{ $item->name }}</h1>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="name{{ $item->id }}" class="form-label">Nama Barang</label>
-                            <input type="text" class="form-control" id="name{{ $item->id }}" name="name" value="{{ old('name', $item->name) }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="category_id{{ $item->id }}" class="form-label">Kategori</label>
-                            <select class="form-select" id="category_id{{ $item->id }}" name="category_id" required>
-                                <option value="">-- Pilih Kategori --</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}" {{ $item->category_id == $category->id ? 'selected' : '' }}>
-                                        {{ $category->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
 
-                        {{-- Input "Satuan" diubah menjadi <select> --}}
-                        <div class="mb-3">
-                            <label for="unit{{ $item->id }}" class="form-label">Satuan</label>
-                            <select class="form-select" id="unit{{ $item->id }}" name="unit" required>
-                                <option value="">-- Pilih Satuan --</option>
-                                @php
-                                    // Daftar satuan untuk memudahkan looping
-                                    $units = ['kg', 'gram', 'liter', 'ml', 'buah', 'pak', 'lusin', 'botol', 'kaleng', 'dus', 'sak', 'karung', 'meter', 'centimeter', 'roll', 'renceng', 'unit'];
-                                @endphp
-                                @foreach($units as $unit)
-                                    <option value="{{ $unit }}" {{ $item->unit == $unit ? 'selected' : '' }}>
-                                        {{ ucfirst($unit) }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        
-                        {{-- Field "Minimum Stok" sudah dihapus sesuai permintaan --}}
-
-                        {{-- Anda bisa menambahkan kembali input untuk expired_date di sini jika diperlukan --}}
-                        <div class="mb-3">
-                           <label for="expired_date{{ $item->id }}" class="form-label">Tanggal Kedaluwarsa</label>
-                           <input type="date" class="form-control" id="expired_date{{ $item->id }}" name="expired_date" value="{{ old('expired_date', $item->expired_date) }}">
-                           <small class="form-text text-danger">Kosongkan jika tidak ada tanggal kedaluwarsa.</small>
-                        </div>
-
-                    </div>
-                    
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-@endforeach
 
 @endsection

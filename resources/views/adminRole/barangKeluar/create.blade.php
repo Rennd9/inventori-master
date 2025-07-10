@@ -53,10 +53,15 @@
                 <div class="col-md-6">
                     <div class="form-group mb-3">
                         <label for="quantity" class="form-label">Jumlah <span class="text-danger">*</span></label>
-                        <input type="number" name="quantity" id="quantity" class="form-control" min="1" value="{{ old('quantity') }}" required>
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQuantity(-1)">–</button>
+                            <input type="number" name="quantity" id="quantity" class="form-control text-center" min="1" value="{{ old('quantity', 1) }}" required>
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQuantity(1)">+</button>
+                        </div>
                         <small class="text-muted">Stok tersedia: <span id="stock-info">0</span></small>
                     </div>
                 </div>
+
             </div>
 
             <div class="row">
@@ -152,5 +157,13 @@ document.addEventListener('DOMContentLoaded', function() {
         itemSelect.dispatchEvent(new Event('change'));
     }
 });
+
+function adjustQuantity(change) {
+    const input = document.getElementById('quantity');
+    let current = parseInt(input.value) || 1;
+    current += change;
+    if (current < 1) current = 1;
+    input.value = current;
+}
 </script>
 @endsection

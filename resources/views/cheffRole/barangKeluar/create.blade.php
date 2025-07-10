@@ -5,7 +5,7 @@
     <div class="neo-border  p-3 h-100">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="fw-bold mb-0">Tambah Barang Keluar</h3>
-            <a href="{{ route('cheff.barang-keluar.index') }}" class="btn btn-secondary">Kembali</a>
+            
         </div>
         
         @if (session('success'))
@@ -38,25 +38,47 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group mb-3">
-                        <label for="item_id" class="form-label">Nama Barang <span class="text-danger">*</span></label>
-                        <select name="item_id" id="item_id" class="form-control" required>
+                       <label for="item_id" class="form-label">Pilih Barang <span class="text-danger">*</span></label>
+                    
+                    {{-- Cek apakah variabel $items memiliki isi --}}
+                    @if(isset($items) && $items->isNotEmpty())
+                        <select name="item_id" id="item_id" class="form-select js-example-disabled-results">
                             <option value="">-- Pilih Barang --</option>
-                            @foreach ($items as $item)
-                                <option value="{{ $item->id }}" data-stock="{{ $item->stock }}" {{ old('item_id') == $item->id ? 'selected' : '' }}>
-                                    {{ $item->name }} (Stok: {{ $item->stock }})
-                                </option>
+                            
+                            {{-- Kelompokkan barang berdasarkan nama kategorinya --}}
+                            @foreach ($items->groupBy('category_name') as $categoryName => $itemsInCategory)
+                                    @foreach ($itemsInCategory as $item)
+                                        <option value="{{ $item->id }}"
+                                            data-category="{{ $categoryName ?: 'Tanpa Kategori' }}"
+                                            {{ old('item_id', $selectedItem->id ?? '') == $item->id ? 'selected' : '' }}>
+                                            {{ $item->name }} Stock: ({{$item->stock}})
+                                        </option>
+                                    @endforeach
                             @endforeach
                         </select>
+                    @else
+                        {{-- Jika $items kosong, tampilkan pesan ini --}}
+                        <div class="form-control is-invalid" style="background-color: #f8d7da; border-color: #f5c2c7;">
+                            Tidak ada barang yang bisa Anda akses.
+                        </div>
+                        <div class="invalid-feedback">
+                            Silakan hubungi Administrator untuk mendapatkan hak akses barang.
+                        </div>
+                    @endif
                     </div>
-                </div>
+                    </div>
 
                 <div class="col-md-6">
                     <div class="form-group mb-3">
                         <label for="quantity" class="form-label">Jumlah <span class="text-danger">*</span></label>
-                        <input type="number" name="quantity" id="quantity" class="form-control" min="1" value="{{ old('quantity') }}" required>
-                        <small class="text-muted">Stok tersedia: <span id="stock-info">0</span></small>
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQuantity(-1)">–</button>
+                            <input type="number" name="quantity" id="quantity" class="form-control text-center" min="1" value="{{ old('quantity', 1) }}" required>
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQuantity(1)">+</button>
+                        </div>
                     </div>
                 </div>
+
             </div>
 
             <div class="row">
@@ -86,9 +108,7 @@
                 <button type="submit" class="btn btn-success" id="submitBtn">
                     <i class="fas fa-save"></i> Simpan
                 </button>
-                <button type="reset" class="btn btn-secondary">
-                    <i class="fas fa-undo"></i> Reset
-                </button>
+                <a href="{{ route('barang-keluar.index') }}" class="btn btn-secondary">Kembali</a>
             </div>
         </form>
     </div>
@@ -98,35 +118,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const itemSelect = document.getElementById('item_id');
     const quantityInput = document.getElementById('quantity');
-    const stockInfo = document.getElementById('stock-info');
     const submitBtn = document.getElementById('submitBtn');
     const form = document.getElementById('outgoingForm');
-
-    // Update stock info when item is selected
-    itemSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const stock = selectedOption.getAttribute('data-stock') || 0;
-        stockInfo.textContent = stock;
-        quantityInput.max = stock;
-        
-        // Reset quantity if exceeds stock
-        if (parseInt(quantityInput.value) > parseInt(stock)) {
-            quantityInput.value = '';
-        }
-    });
-
-    // Validate quantity against stock
-    quantityInput.addEventListener('input', function() {
-        const selectedOption = itemSelect.options[itemSelect.selectedIndex];
-        const stock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
-        const quantity = parseInt(this.value) || 0;
-
-        if (quantity > stock) {
-            this.setCustomValidity('Jumlah melebihi stok tersedia (' + stock + ')');
-        } else {
-            this.setCustomValidity('');
-        }
-    });
 
     // Prevent double submission
     form.addEventListener('submit', function(e) {
@@ -152,5 +145,13 @@ document.addEventListener('DOMContentLoaded', function() {
         itemSelect.dispatchEvent(new Event('change'));
     }
 });
+
+function adjustQuantity(change) {
+    const input = document.getElementById('quantity');
+    let current = parseInt(input.value) || 1;
+    current += change;
+    if (current < 1) current = 1;
+    input.value = current;
+}
 </script>
 @endsection

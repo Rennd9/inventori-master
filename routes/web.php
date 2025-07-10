@@ -12,6 +12,8 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\AdminCategorySettingsController;
+use App\Http\Controllers\UserController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -26,10 +28,10 @@ Auth::routes();
 
 /*
 |--------------------------------------------------------------------------
-| Normal User Routes
+| Normal User AS barista Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'user-access:user'])->group(function () {
+Route::middleware(['auth', 'user-access:barista'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'userView'])->name('home');
     Route::get('/items', [ItemController::class, 'indexUser'])->name('user.items.index');
 
@@ -60,7 +62,6 @@ Route::prefix('admin')->middleware(['auth', 'user-access:admin'])->group(functio
 
     // Kategori
     Route::resource('kategori', CategoryController::class);
-    Route::put('/kategori/{id}', [CategoryController::class, 'update'])->name('kategori.update');
 
 
     // Barang Masuk & Keluar
@@ -86,6 +87,9 @@ Route::prefix('admin')->middleware(['auth', 'user-access:admin'])->group(functio
     Route::get('user-auth', [AdminCategorySettingsController::class, 'index'])->name('admin.users.userauth.index');
     Route::get('{user}/edit/user-auth', [AdminCategorySettingsController::class, 'edit'])->name('admin.users.userauth.edit');
     Route::put('{user}/user-auth', [AdminCategorySettingsController::class, 'updatePermissions'])->name('admin.users.userauth'); 
+
+    // Users Setting
+     Route::resource('users', UserController::class);
 
 });
 

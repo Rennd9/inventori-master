@@ -15,6 +15,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->integer('type')->default(0); // Tambahkan kolom type langsung
+            $table->string('image')->nullable()->after('email');
             $table->rememberToken();
             $table->timestamps();
         });

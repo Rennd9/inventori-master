@@ -27,11 +27,11 @@ class CustomerController extends Controller
             'alamat' => $request->alamat,
         ]);
 
-        return back()->with('success', 'Costumers berhasil diperbarui.');
+        return redirect()->route('customers.index')->with('success', 'Costumers berhasil diperbarui.');
     }
     public function destroy($id)
     {
         DB::table('customers')->where('id', $id)->delete();
-        return redirect()->route('customers.index')->with('success', 'Barang masuk berhasil disimpan.');
+        return redirect()->route('customers.index')->with('success', 'Barang masuk berhasil dihapus.');
     }
 }

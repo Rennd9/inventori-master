@@ -17,6 +17,8 @@
                 <th>Jumlah</th>
                 <th>Penerima</th>
                 <th>Tanggal Keluar</th>
+                <th>Aksi</th>
+
             </tr>
         </thead>
         <tbody>
@@ -26,6 +28,16 @@
                     <td>{{ $d->quantity }}</td>
                     <td>{{ $d->customer_name  ?? 'Tidak ada customers' }}</td>
                     <td>{{ $d->date }}</td>
+                    <td>
+    <form action="{{ route('barang-keluar.destroy', $d->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn btn-sm btn-danger">
+            <i class="fas fa-trash-alt"></i> Hapus
+        </button>
+    </form>
+</td>
+
                 </tr>
             @endforeach
         </tbody>

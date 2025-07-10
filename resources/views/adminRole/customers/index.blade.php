@@ -29,7 +29,7 @@
                  <td>{{ $customer->alamat }}</td>
                  <td><form action="{{ route('customers.destroy', $customer->id) }}" method="POST" style="display:inline;">
                             @csrf @method('DELETE')
-                            <button type="submit" onclick="return confirm('Hapus kategori ini?')">🗑️ Hapus</button>
+                            <button type="submit" onclick="return confirm('Apakah Yakin Anda Hapus Karyawan ini?')">🗑️ Hapus</button>
                         </form></td>
             </tr>
             @endforeach

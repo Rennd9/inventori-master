@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class OutgoingGoodsController extends Controller
 {
@@ -26,29 +27,46 @@ class OutgoingGoodsController extends Controller
 
     public function getCreateData(Request $request)
     {
-        $items = DB::table('items')->where('stock', '>', 0)->get();
+        // 1. Dapatkan user dan hak akses kategorinya
+        $user = Auth::user();
+        $allowedCategoryIds = DB::table('category_user')
+            ->where('user_id', $user->id)
+            ->pluck('category_id');
+
+        // 2. MODIFIKASI DI SINI: Ambil HANYA barang yang diizinkan & punya stok
+        $items = DB::table('items')
+            ->leftJoin('categories as kategori', 'kategori.id', '=', 'items.category_id')
+           
+            ->whereIn('items.category_id', $allowedCategoryIds) // <-- Filter hak akses ditambahkan di sini
+            ->select('items.*', 'kategori.name as category_name') // Ambil nama kategori untuk grouping di view
+            ->orderBy('items.name', 'asc')
+            ->get();
+
+        // Baris ini tidak perlu diubah
         $customers = DB::table('customers')->get();
 
+        // --- Logika selanjutnya tidak perlu diubah ---
         $selectedItem = null;
         $defaultCustomerId = null;
         $lastQuantity = null;
         $availableStock = null;
 
         if ($request->has('item_id')) {
-            $selectedItem = DB::table('items')
-                ->where('id', $request->item_id)
-                ->first();
+            // Cek item yang dipilih dari koleksi yang sudah difilter
+            $selectedItem = $items->firstWhere('id', $request->item_id);
             
-            $availableStock = $selectedItem ? $selectedItem->stock : 0;
+            if ($selectedItem) {
+                $availableStock = $selectedItem->stock;
 
-            $lastOutgoing = DB::table('outgoing_goods')
-                ->where('item_id', $request->item_id)
-                ->orderByDesc('created_at')
-                ->first();
+                $lastOutgoing = DB::table('outgoing_goods')
+                    ->where('item_id', $request->item_id)
+                    ->orderByDesc('created_at')
+                    ->first();
 
-            if ($lastOutgoing) {
-                $lastQuantity = $lastOutgoing->quantity;
-                $defaultCustomerId = $lastOutgoing->customer_id;
+                if ($lastOutgoing) {
+                    $lastQuantity = $lastOutgoing->quantity;
+                    $defaultCustomerId = $lastOutgoing->customer_id;
+                }
             }
         }
 
@@ -190,9 +208,22 @@ class OutgoingGoodsController extends Controller
     // INDEX CHEFF: Menampilkan list barang keluar untuk cheff
     public function indexCheff()
     {
+        // 1. Dapatkan user yang sedang login
+        $user = Auth::user();
+
+        // 2. Ambil ID kategori yang diizinkan untuk user ini
+        $allowedCategoryIds = DB::table('category_user')
+            ->where('user_id', $user->id)
+            ->pluck('category_id');
+
+        // 3. Modifikasi query utama dengan filter
         $data = DB::table('outgoing_goods')
             ->join('items', 'outgoing_goods.item_id', '=', 'items.id')
             ->join('customers', 'outgoing_goods.customer_id', '=', 'customers.id')
+            
+            // FILTER DITAMBAHKAN DI SINI
+            ->whereIn('items.category_id', $allowedCategoryIds) 
+            
             ->select(
                 'outgoing_goods.*',
                 'items.name as item_name',
@@ -247,72 +278,103 @@ class OutgoingGoodsController extends Controller
     // BARISTA/USER ROLE FUNCTIONS
     // ===============================================================
 
-    // CREATE BARISTA: Form tambah barang keluar untuk barista (untuk operasional harian)
     public function createBarista(Request $request)
-    {
-        $data = $this->getCreateData($request);
-        // Filter hanya item yang sering digunakan atau kategori tertentu
-        $data['items'] = DB::table('items')
-            ->where('stock', '>', 0)
-            ->whereIn('category_id', [1, 2, 3]) // Sesuaikan dengan kategori yang relevan untuk barista
-            ->get();
-            
-        return view('userRole.barangKeluar.create', $data);
-    }
+        {
+            // 1. Ambil user dan hak akses kategorinya
+            $user = Auth::user();
+            $allowedCategoryIds = DB::table('category_user')
+                ->where('user_id', $user->id)
+                ->pluck('category_id');
 
-    // STORE BARISTA: Simpan barang keluar untuk barista
-    public function storeBarista(Request $request)
-    {
-        $request->validate([
-            'item_id' => 'required|exists:items,id',
-            'customer_id' => 'required|exists:customers,id',
-            'quantity' => 'required|integer|min:1|max:10', // Batasi quantity untuk barista
-            'date' => 'required|date'
-        ]);
+            // 2. Ambil item HANYA dari kategori yang diizinkan untuk Barista
+            $items = DB::table('items')
+                ->leftJoin('categories as kategori', 'kategori.id', '=', 'items.category_id')
+                ->where('items.stock', '>', 0)
+                ->whereIn('items.category_id', $allowedCategoryIds) // <-- Filter dinamis digunakan di sini
+                ->select('items.*', 'kategori.name as category_name')
+                ->orderBy('items.name', 'asc')
+                ->get();
+                
+            $customers = DB::table('customers')->get();
 
-        $item = DB::table('items')->where('id', $request->item_id)->first();
-
-        // Validasi tambahan untuk barista
-        if ($request->quantity > 10) {
-            return redirect()->back()->with('error', 'Quantity tidak boleh lebih dari 10 untuk transaksi barista.');
+            return view('userRole.barangKeluar.create', compact('items', 'customers'));
         }
 
-        if ($item && $item->stock >= $request->quantity) {
-            DB::table('outgoing_goods')->insert([
-                'item_id' => $request->item_id,
-                'customer_id' => $request->customer_id,
-                'quantity' => $request->quantity,
-                'date' => $request->date,
-                'note' => 'Processed by Barista: ' . auth()->user()->name,
-                'created_at' => now(),
-                'updated_at' => now(),
+        /**
+         * STORE BARISTA: Simpan barang keluar untuk Barista
+         * Dengan validasi hak akses sebelum menyimpan.
+         */
+        public function storeBarista(Request $request)
+        {
+            $request->validate([
+                'item_id' => 'required|exists:items,id',
+                'customer_id' => 'required|exists:customers,id',
+                'quantity' => 'required|integer|min:1',
+                'date' => 'required|date'
             ]);
 
-            // Kurangi stok dari item terkait
-            DB::table('items')->where('id', $request->item_id)->decrement('stock', $request->quantity);
+            $user = Auth::user();
+            $allowedCategoryIds = DB::table('category_user')
+                ->where('user_id', $user->id)
+                ->pluck('category_id');
 
-            return redirect()->route('user.barang-keluar.index')->with('success', 'Transaksi barang keluar berhasil disimpan.');
-        } else {
-            return redirect()->back()->with('error', 'Stok tidak mencukupi. Stok tersedia: ' . ($item->stock ?? 0));
+            // VALIDASI HAK AKSES: Pastikan item yang dipilih ada dalam kategori yang diizinkan
+            $isItemAllowed = DB::table('items')
+                ->where('id', $request->item_id)
+                ->whereIn('category_id', $allowedCategoryIds)
+                ->exists();
+
+            if (!$isItemAllowed) {
+                return redirect()->back()->with('error', 'Anda tidak memiliki hak akses untuk barang ini.');
+            }
+
+            $item = DB::table('items')->where('id', $request->item_id)->first();
+
+            if ($item && $item->stock >= $request->quantity) {
+                DB::table('outgoing_goods')->insert([
+                    'item_id' => $request->item_id,
+                    'customer_id' => $request->customer_id,
+                    'quantity' => $request->quantity,
+                    'date' => $request->date,
+                    'note' => 'Processed by Barista: ' . $user->name,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('items')->where('id', $request->item_id)->decrement('stock', $request->quantity);
+
+                // Arahkan ke route index milik Barista/User
+                return redirect()->route('user.barang-keluar.index')->with('success', 'Transaksi barang keluar berhasil disimpan.');
+            } else {
+                return redirect()->back()->withInput()->with('error', 'Stok tidak mencukupi. Stok tersedia: ' . ($item->stock ?? 0));
+            }
         }
-    }
-   
-    // INDEX BARISTA: Menampilkan list barang keluar untuk barista
-    public function indexBarista()
-    {
-        $data = DB::table('outgoing_goods')
-            ->join('items', 'outgoing_goods.item_id', '=', 'items.id')
-            ->join('customers', 'outgoing_goods.customer_id', '=', 'customers.id')
-            ->select(
-                'outgoing_goods.*',
-                'items.name as item_name',
-                'customers.nama as customer_name'
-            )
-            ->whereDate('outgoing_goods.date', '>=', now()->subDays(7)) // Hanya 7 hari terakhir
-            ->orderBy('outgoing_goods.date', 'desc')
-            ->limit(30)
-            ->get();
 
-        return view('userRole.barangKeluar.index', compact('data'));
-    }
+        /**
+         * INDEX BARISTA: Menampilkan list barang keluar untuk Barista
+         * Hanya menampilkan data dari kategori yang diizinkan.
+         */
+        public function indexBarista()
+        {
+            // 1. Ambil user dan hak akses kategorinya
+            $user = Auth::user();
+            $allowedCategoryIds = DB::table('category_user')
+                ->where('user_id', $user->id)
+                ->pluck('category_id');
+
+            // 2. Query utama ditambahkan filter hak akses
+            $data = DB::table('outgoing_goods')
+                ->join('items', 'outgoing_goods.item_id', '=', 'items.id')
+                ->join('customers', 'outgoing_goods.customer_id', '=', 'customers.id')
+                ->whereIn('items.category_id', $allowedCategoryIds) // <-- FILTER DINAMIS DITERAPKAN DI SINI
+                ->select(
+                    'outgoing_goods.*',
+                    'items.name as item_name',
+                    'customers.nama as customer_name'
+                )
+                ->orderBy('outgoing_goods.date', 'desc')
+                ->get();
+
+            return view('userRole.barangKeluar.index', compact('data'));
+        }
 }

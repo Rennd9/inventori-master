@@ -3,7 +3,17 @@
 @section('content')
 <!-- Stats Cards -->
 <div class="row g-3 mb-4">
-    isian
+    <div class="col-md-6 col-lg-6">
+        <div class="neo-card bg-light p-3 h-100 custom-card" >
+            <div class="d-flex justify-content-between">
+               SOON FEATURES
+                <div class="d-flex align-items-center justify-content-center neo-border text-black" 
+                     style="width: 48px; height: 48px; background-color: #ddd6fe;">
+                    <i class="fas fa-users fs-5"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 

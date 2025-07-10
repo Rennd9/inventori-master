@@ -49,7 +49,7 @@
                         @endif
                     </td>
                     <td>
-                        <a href="{{ route('admin.users.categories.edit', $user->id) }}" class="btn btn-sm btn-warning">Edit Kategori</a>
+                        <a href="{{ route('admin.users.categories.edit', $user->id) }}" class="btn btn-sm btn-warning">Edit Akses</a>
                     </td>
                 </tr>
             @endforeach

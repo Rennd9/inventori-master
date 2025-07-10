@@ -2,10 +2,10 @@
 
 @section('content')
 <div class="col-lg-12">
-    <div class="neo-border p-3 h-100">
+    <div class="neo-border  p-3 h-100">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="fw-bold mb-0">Barang Masuk</h3>
-            <a class="btn neo-btn btn-sm" href="{{ route('cheff.barang-masuk.create') }}">
+            <a class="btn neo-btn btn-sm " href="{{ route('cheff.barang-masuk.create') }}">
                 + Tambah Barang Masuk
             </a>
         </div>
@@ -25,8 +25,10 @@
                         <th>No</th>
                         <th>Barang</th>
                         <th>Jumlah</th>
+                        <th>Satuan</th> 
                         <th>Supplier</th>
                         <th>Tanggal Masuk</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -35,8 +37,19 @@
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $d->item_name }}</td>
                             <td>{{ number_format($d->quantity) }}</td>
+                            <td>{{ $d->unit ?? '-' }}</td> <!-- Tambahan -->
                             <td>{{ $d->supplier_name ?? 'Tidak ada supplier' }}</td>
                             <td>{{ \Carbon\Carbon::parse($d->date)->format('d/m/Y') }}</td>
+                            <td>
+    <form action="{{ route('barang-masuk.destroy', $d->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn btn-sm btn-danger">
+            <i class="fas fa-trash-alt"></i> Hapus
+        </button>
+    </form>
+</td>
+
                         </tr>
                     @empty
                         <tr>

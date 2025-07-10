@@ -87,7 +87,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center">Tidak ada data barang</td></tr>
+                    <tr><td colspan="6" class="text-center">Tidak ada data barang (hubungi layanan).</td></tr>
                     @endforelse
                 </tbody>
             </table>

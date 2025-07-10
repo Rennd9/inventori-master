@@ -2,12 +2,12 @@
 
 @section('content')
 <div class="col-lg-12">
-    <div class="neo-border  p-3 h-100">
+    <div class="neo-border p-3 h-100">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="fw-bold mb-0">Tambah Barang Masuk</h3>
+            <h3 class="fw-bold mb-0">📝 Tambah Barang Masuk</h3>
         </div>
 
-        {{-- Notifikasi Error --}}
+        {{-- Notifikasi Error Validasi --}}
         @if ($errors->any())
             <div class="alert alert-danger">
                 <ul class="mb-0">
@@ -18,58 +18,72 @@
             </div>
         @endif
 
-        {{-- Notifikasi Success/Error --}}
+        {{-- Notifikasi Sukses/Gagal dari Session --}}
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
-
         @if (session('error'))
             <div class="alert alert-danger">{{ session('error') }}</div>
         @endif
 
         <form action="{{ route('barang-masuk.store') }}" method="POST">
             @csrf
-
             <div class="row">
-                {{-- Pilih Barang --}}
+
+                {{-- ================================================================ --}}
+                {{-- AWAL PERBAIKAN PADA DROPDOWN BARANG --}}
+                {{-- ================================================================ --}}
                 <div class="col-md-6 mb-3">
                     <label for="item_id" class="form-label">Barang <span class="text-danger">*</span></label>
-                    <select name="item_id" id="item_id" class="form-select" required onchange="loadItemDetails()">
-                        <option value="">-- Pilih Barang --</option>
-                        @foreach ($items as $item)
-                            <option value="{{ $item->id }}" 
-                                data-unit="{{ $item->unit }}"
-                                data-current-stock="{{ $item->stock }}"
-                                {{ old('item_id', $selectedItem->id ?? '') == $item->id ? 'selected' : '' }}>
-                                {{ $item->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    
+                    {{-- Cek apakah variabel $items memiliki isi --}}
+                    @if(isset($items) && $items->isNotEmpty())
+                        <select name="item_id" id="item_id" class="form-select" required onchange="loadLastSupplierAndQuantity(this.value)">
+                            <option value="">-- Pilih Barang --</option>
+                            
+                            {{-- Kelompokkan barang berdasarkan nama kategorinya --}}
+                            @foreach ($items->groupBy('category_name') as $categoryName => $itemsInCategory)
+                                <optgroup label="{{ $categoryName ?: 'Tanpa Kategori' }}">
+                                    @foreach ($itemsInCategory as $item)
+                                        <option value="{{ $item->id }}"
+                                            {{ old('item_id', $selectedItem->id ?? '') == $item->id ? 'selected' : '' }}>
+                                            {{ $item->name }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </select>
+                    @else
+                        {{-- Jika $items kosong, tampilkan pesan ini --}}
+                        <div class="form-control is-invalid" style="background-color: #f8d7da; border-color: #f5c2c7;">
+                            Tidak ada barang yang bisa Anda akses.
+                        </div>
+                        <div class="invalid-feedback">
+                            Silakan hubungi Administrator untuk mendapatkan hak akses barang.
+                        </div>
+                    @endif
                 </div>
+                {{-- ================================================================ --}}
+                {{-- AKHIR PERBAIKAN --}}
+                {{-- ================================================================ --}}
 
                 {{-- Tanggal Masuk --}}
                 <div class="col-md-6 mb-3">
                     <label for="date" class="form-label">Tanggal Masuk <span class="text-danger">*</span></label>
-                    <input type="date" 
-                           name="date" 
-                           id="date"
-                           class="form-control"
-                           value="{{ old('date', now()->toDateString()) }}" 
-                           max="{{ now()->toDateString() }}"
-                           required>
+                    <input type="date" name="date" id="date" class="form-control"
+                           value="{{ old('date', now()->toDateString()) }}" max="{{ now()->toDateString() }}" required>
                 </div>
 
                 {{-- Jumlah Stok --}}
                 <div class="col-md-6 mb-3">
-                    <label for="quantity" class="form-label">Jumlah Stok yang Akan Ditambahkan <span class="text-danger">*</span></label>
-                    <input type="number" 
-                           name="quantity" 
-                           id="quantity"
-                           value="{{ old('quantity', $lastQuantity ?? '') }}"
-                           class="form-control" 
-                           min="1" 
-                           required
-                           placeholder="Masukkan jumlah stok">
+                    <label for="quantity" class="form-label">Jumlah Stok <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <button type="button" class="btn btn-outline-secondary" onclick="adjustQuantity(-1)">–</button>
+                        <input type="number" name="quantity" id="quantity"
+                               value="{{ old('quantity', $lastQuantity ?? 1) }}"
+                               class="form-control text-center" min="1" required placeholder="Jumlah">
+                        <button type="button" class="btn btn-outline-secondary" onclick="adjustQuantity(1)">+</button>
+                    </div>
                 </div>
 
                 {{-- Supplier --}}
@@ -85,29 +99,14 @@
                         @endforeach
                     </select>
                 </div>
-
-                {{-- Satuan (readonly) --}}
-                <div class="col-md-6 mb-3" id="unit-info" style="display: none;">
-                    <label for="unit" class="form-label">Satuan</label>
-                    <input type="text" id="unit" class="form-control" readonly>
-                </div>
             </div>
 
-            {{-- Info Stok Saat Ini --}}
-            <div class="mb-3" id="current-stock-info" style="display: none;">
-                <div class="alert alert-info">
-                    <strong>Stok Saat Ini:</strong> 
-                    <span id="current-stock-value">0</span> 
-                    <span id="current-stock-unit"></span>
-                </div>
-            </div>
-
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 mt-3">
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Simpan
+                    <i class="fas fa-save me-1"></i> Simpan
                 </button>
                 <a href="{{ route('barang-masuk.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Kembali
+                    <i class="fas fa-arrow-left me-1"></i> Kembali
                 </a>
             </div>
         </form>
@@ -115,45 +114,21 @@
 </div>
 
 <script>
-function loadItemDetails() {
-    const itemSelect = document.getElementById('item_id');
-    const selectedOption = itemSelect.options[itemSelect.selectedIndex];
-    
-    const currentStockInfo = document.getElementById('current-stock-info');
-    const currentStockValue = document.getElementById('current-stock-value');
-    const currentStockUnit = document.getElementById('current-stock-unit');
-    const unitInfo = document.getElementById('unit-info');
-    const unitInput = document.getElementById('unit');
-    
-    if (selectedOption.value && selectedOption.dataset.unit) {
-        currentStockValue.textContent = selectedOption.dataset.currentStock || '0';
-        currentStockUnit.textContent = selectedOption.dataset.unit;
-        currentStockInfo.style.display = 'block';
-        
-        unitInput.value = selectedOption.dataset.unit;
-        unitInfo.style.display = 'block';
-        
-        loadLastSupplierAndQuantity(selectedOption.value);
-    } else {
-        currentStockInfo.style.display = 'none';
-        unitInfo.style.display = 'none';
-    }
+// Script Anda tidak perlu diubah
+function adjustQuantity(amount) {
+    const input = document.getElementById('quantity');
+    let current = parseInt(input.value) || 0;
+    current += amount;
+    if (current < 1) current = 1;
+    input.value = current;
 }
 
 function loadLastSupplierAndQuantity(itemId) {
-    const currentUrl = new URL(window.location);
-    currentUrl.searchParams.set('item_id', itemId);
-    const currentItemId = currentUrl.searchParams.get('item_id');
-    if (currentItemId != itemId) {
+    if (itemId) {
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('item_id', itemId);
         window.location.href = currentUrl.toString();
     }
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    const itemSelect = document.getElementById('item_id');
-    if (itemSelect.value) {
-        loadItemDetails();
-    }
-});
 </script>
 @endsection

@@ -19,6 +19,7 @@
                 <th>Nama Supplier</th>
                 <th>Alamat Toko</th>
                 <th>Nomor dihubungi</th>
+                <th>Aksi</th>
             </tr>
         </thead>
         <tbody>
@@ -29,6 +30,10 @@
                 <td>{{ $supplier->namasup }}</td>
                 <td>{{ $supplier->alamat }}</td>
                 <td>{{ $supplier->no_hp }}</td>
+                 <td><form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" style="display:inline;">
+                            @csrf @method('DELETE')
+                            <button type="submit" onclick="return confirm('Apakah Yakin Anda Hapus Data Supplier ini?')">🗑️ Hapus</button>
+                        </form></td>
             </tr>
             @endforeach
         </tbody>

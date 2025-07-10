@@ -19,14 +19,28 @@ class SupplierController extends Controller
     }
 
     public function store(Request $request)
+{
+    $request->validate([
+        'nama' => 'required|string|max:255',
+        'namasup' => 'required|string|max:255',
+        'no_hp' => 'required|numeric',
+        'alamat' => 'required|string',
+    ]);
+
+    DB::table('suppliers')->insert([
+        'nama' => $request->nama,
+        'namasup' => $request->namasup,
+        'no_hp' => $request->no_hp,
+        'alamat' => $request->alamat
+    ]);
+
+    return redirect('/admin/suppliers')->with('success', 'Supplier ditambahkan!');
+}
+public function destroy($id)
     {
-        DB::table('suppliers')->insert([
-            'nama' => $request->nama,
-            'namasup' => $request->kontak,
-            'no_hp' => $request->no_hp,
-            'alamat' => $request->alamat
-        ]);
-        return redirect('/admin/suppliers')->with('success', 'Supplier ditambahkan!');
+        DB::table('suppliers')->where('id', $id)->delete();
+        return redirect()->route('suppliers.index')->with('success', 'Barang masuk berhasil dihapus.');
     }
+
 }
 

@@ -38,26 +38,10 @@ class CategoryController extends Controller
     }
 
 
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
-
-        DB::table('categories')->where('id', $id)->update([
-            'name' => $request->name,
-            'has_expiration' => $request->has('has_expiration'),
-            'updated_at' => now(),
-        ]);
-
-        return redirect()->route('kategori.index')->with('success', 'Kategori berhasil diperbarui.');
-    }
-
-
     public function destroy($id)
     {
         DB::table('categories')->where('id', $id)->delete();
-        return redirect('/kategori');
+         return redirect()->route('kategori.index')->with('success', 'Kategori berhasil dihapus.');
     }
 
 
